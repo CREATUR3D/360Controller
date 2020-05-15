@@ -1,8 +1,13 @@
 #!/bin/bash
+
+DEV_NAME=`echo | grep DEVELOPER_NAME DeveloperSettings.xcconfig`
+DEV_TEAM=`echo | grep DEVELOPMENT_TEAM DeveloperSettings.xcconfig`
+CERT_ID="${DEV_NAME//\DEVELOPER_NAME = } (${DEV_TEAM//\DEVELOPMENT_TEAM = })"
+
 mkdir -p build
 zip -r build/360ControllerSource.zip * -x "build*"
 
-xcrun xcodebuild -configuration Release -target "Whole Driver"
+xcrun xcodebuild -configuration Release -target "Whole Driver" -xcconfig "DeveloperSettings.xcconfig" OTHER_CODE_SIGN_FLAGS="--timestamp --options=runtime"
 if [ $? -ne 0 ]
   then
     echo "******** BUILD FAILED ********"
@@ -10,9 +15,9 @@ if [ $? -ne 0 ]
 fi
 
 cd Install360Controller
-packagesbuild -v Install360Controller.pkgproj
+packagesbuild -v Install360Controller.pkgproj --identity "Developer ID Installer: ""${CERT_ID}"
 mv build 360ControllerInstall
-hdiutil create -srcfolder 360ControllerInstall -format UDZO ../build/360ControllerInstall.dmg
+hdiutil create -srcfolder 360ControllerInstall -fs HFS+ -format UDZO ../build/360ControllerInstall.dmg
 mv 360ControllerInstall build
 cd ..
 echo "** File contents **"
@@ -21,15 +26,15 @@ xcrun lipo -info build/Release/360Controller.kext/Contents/PlugIns/Feedback360.p
 xcrun lipo -info build/Release/360Daemon.app/Contents/MacOS/360Daemon
 xcrun lipo -info build/Release/Pref360Control.prefPane/Contents/MacOS/Pref360Control
 xcrun lipo -info build/Release/Pref360Control.prefPane/Contents/Resources/DriverTool
-xcrun lipo -info build/Release/WirelessGamingReceiver.kext/Contents/MacOS/WirelessGamingReceiver
-xcrun lipo -info build/Release/Wireless360Controller.kext/Contents/MacOS/Wireless360Controller
+# xcrun lipo -info build/Release/WirelessGamingReceiver.kext/Contents/MacOS/WirelessGamingReceiver
+# xcrun lipo -info build/Release/Wireless360Controller.kext/Contents/MacOS/Wireless360Controller
 echo "** File signatures **"
 xcrun spctl -a -v build/Release/360Controller.kext
 xcrun spctl -a -v build/Release/360Controller.kext/Contents/PlugIns/Feedback360.plugin
 xcrun spctl -a -v build/Release/360Daemon.app/Contents/MacOS/360Daemon
 xcrun spctl -a -v build/Release/Pref360Control.prefPane
 xcrun spctl -a -v build/Release/Pref360Control.prefPane/Contents/Resources/DriverTool
-xcrun spctl -a -v build/Release/WirelessGamingReceiver.kext
-xcrun spctl -a -v build/Release/Wireless360Controller.kext
+# xcrun spctl -a -v build/Release/WirelessGamingReceiver.kext
+# xcrun spctl -a -v build/Release/Wireless360Controller.kext
 xcrun spctl -a -v --type install Install360Controller/build/Install360Controller.pkg
 echo "*** DONE ***"
